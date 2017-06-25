@@ -246,7 +246,7 @@ else
 endif
 
 SRC = win32.mak posix.mak osmodel.mak \
-	mars.c enum.c struct.c dsymbol.c import.c idgen.d impcnvgen.c \
+	mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c \
 	identifier.c mtype.c expression.c optimize.c template.h \
 	template.c lexer.c declaration.c cast.c cond.h cond.c link.c \
 	aggregate.h parse.c statement.c constfold.c version.h version.c \
@@ -392,8 +392,8 @@ $(optabgen_output) : optabgen
 idgen_output = id.h id.c
 $(idgen_output) : idgen
 
-idgen: idgen.d $(HOST_DC)
-	CC=$(HOST_CC) $(HOST_DC_RUN) idgen.d
+idgen : idgen.c
+	$(CC) idgen.c -o idgen
 	./idgen
 
 ######### impcnvgen generates some source
