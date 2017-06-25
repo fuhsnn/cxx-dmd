@@ -39,26 +39,6 @@ LDFLAGS=-lm -lstdc++ -lpthread
 CC=$(HOST_CC)
 GIT=git
 
-# Host D compiler for bootstrapping
-ifeq (,$(AUTO_BOOTSTRAP))
-  # No bootstrap, a $(HOST_DC) installation must be available
-  HOST_DC?=dmd
-  HOST_DC_FULL:=$(shell which $(HOST_DC))
-  ifeq (,$(HOST_DC_FULL))
-    $(error '$(HOST_DC)' not found, get a D compiler or make AUTO_BOOTSTRAP=1)
-  endif
-  HOST_DC_RUN:=$(HOST_DC)
-  HOST_DC:=$(HOST_DC_FULL)
-else
-  # Auto-bootstrapping, will download dmd automatically
-  HOST_DMD_VER=2.067.1
-  HOST_DMD_ROOT=/tmp/.host_dmd-$(HOST_DMD_VER)
-  HOST_DMD_URL=http://downloads.dlang.org/releases/2015/dmd.$(HOST_DMD_VER).$(OS).zip
-  HOST_DMD=$(HOST_DMD_ROOT)/dmd2/$(OS)/$(if $(filter $(OS),osx),bin,bin$(MODEL))/dmd
-  HOST_DC=$(HOST_DMD)
-  HOST_DC_RUN=$(HOST_DC) -conf=$(dir $(HOST_DC))dmd.conf
-endif
-
 # Compiler Warnings
 ifdef ENABLE_WARNINGS
 WARNINGS := -Wall -Wextra \
@@ -282,7 +262,7 @@ DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS))
 
 all: dmd
 
-auto-tester-build: dmd checkwhitespace ddmd
+auto-tester-build: dmd
 .PHONY: auto-tester-build
 
 frontend.a: $(DMD_OBJS)
@@ -306,18 +286,6 @@ clean:
 		tytab.c verstr.h core \
 		*.cov *.deps *.gcda *.gcno *.a \
 		$(GENSRC)
-
-######## Download and install the last dmd buildable without dmd
-
-ifneq (,$(AUTO_BOOTSTRAP))
-.PHONY: host-dmd
-host-dmd: ${HOST_DMD}
-
-${HOST_DMD}:
-	mkdir -p ${HOST_DMD_ROOT}
-	TMPFILE=$$(mktemp deleteme.XXXXXXXX) && curl -fsSL ${HOST_DMD_URL} > $${TMPFILE}.zip && \
-		unzip -qd ${HOST_DMD_ROOT} $${TMPFILE}.zip && rm $${TMPFILE}.zip
-endif
 
 ######## generate a default dmd.conf
 
@@ -445,11 +413,6 @@ install: all
 
 ######################################################
 
-checkwhitespace: $(HOST_DC)
-	$(HOST_DC_RUN) -run checkwhitespace $(SRC) $(GLUE_SRC) $(ROOT_SRC)
-
-######################################################
-
 gcov:
 	gcov access.c
 	gcov aliasthis.c
@@ -530,11 +493,6 @@ endif
 zip:
 	-rm -f dmdsrc.zip
 	zip dmdsrc $(SRC) $(ROOT_SRC) $(GLUE_SRC) $(BACK_SRC) $(TK_SRC)
-
-######################################################
-
-../changelog.html: ../changelog.dd
-	$(HOST_DC_RUN) -Df$@ $<
 
 #############################
 
